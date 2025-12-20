@@ -520,7 +520,6 @@ function FloatingChatbot() {
           <div className="chatbotHeader">
             <div>
               <div className="chatbotTitle">AI Chat</div>
-              <div className="chatbotSub">Powered by Flowise</div>
             </div>
             <button className="chatbotClose" type="button" onClick={() => setOpen(false)} aria-label="Close">
               ×
