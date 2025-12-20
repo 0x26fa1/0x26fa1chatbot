@@ -131,7 +131,7 @@ function Home() {
       setContactStatus({
         kind: "success",
         message:
-          "Message sent! If this is your first submission, check your inbox to confirm/activate the form.",
+          "Message sent! Thank you for getting in touch. I’ll get back to you as soon as possible.",
       });
     } catch (err) {
       setContactStatus({
