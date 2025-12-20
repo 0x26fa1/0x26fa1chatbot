@@ -1,181 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { HashRouter, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { PROJECTS } from "./projects.js";
-
-const FLOWISE_ENDPOINT =
-  "https://cloud.flowiseai.com/api/v1/prediction/9f4a5ad9-7da6-4fc2-8c42-0c92382dfb35";
-
-async function queryFlowise(data, { signal } = {}) {
-  const response = await fetch(FLOWISE_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-    signal,
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`Flowise request failed (${response.status}): ${text || response.statusText}`);
-  }
-
-  return response.json();
-}
-
-function extractAssistantText(payload) {
-  const pick = (v) => {
-    if (v == null) return "";
-    if (typeof v === "string") return v;
-    if (typeof v === "number" || typeof v === "boolean") return String(v);
-    if (Array.isArray(v)) {
-      for (let i = v.length - 1; i >= 0; i--) {
-        const t = pick(v[i]);
-        if (t) return t;
-      }
-      return "";
-    }
-    if (typeof v === "object") {
-      for (const key of ["text", "answer", "result", "response", "message", "output", "data"]) {
-        const t = pick(v[key]);
-        if (t) return t;
-      }
-    }
-    return "";
-  };
-
-  const text = pick(payload);
-  return text || "Sorry — I couldn’t parse a reply from the chatbot.";
-}
-
-function FloatingChatbot() {
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState(() => [
-    {
-      id: "m0",
-      role: "assistant",
-      text: "Hi! I’m the site assistant — ask me anything.",
-    },
-  ]);
-
-  const inputRef = useRef(null);
-  const endRef = useRef(null);
-  const abortRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    inputRef.current?.focus?.();
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    endRef.current?.scrollIntoView?.({ behavior: "smooth", block: "end" });
-  }, [open, messages, loading]);
-
-  useEffect(() => {
-    const onKeyDown = (e) => {
-      if (!open) return;
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open]);
-
-  const send = async () => {
-    const question = draft.trim();
-    if (!question || loading) return;
-
-    setDraft("");
-    setLoading(true);
-
-    const id = (globalThis.crypto?.randomUUID?.() || String(Date.now())) + "-u";
-    setMessages((prev) => [...prev, { id, role: "user", text: question }]);
-
-    // cancel any previous in-flight request
-    abortRef.current?.abort?.();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      const result = await queryFlowise({ question }, { signal: controller.signal });
-      const replyText = extractAssistantText(result);
-      const rid = (globalThis.crypto?.randomUUID?.() || String(Date.now())) + "-a";
-      setMessages((prev) => [...prev, { id: rid, role: "assistant", text: replyText }]);
-    } catch (err) {
-      if (err?.name !== "AbortError") {
-        const rid = (globalThis.crypto?.randomUUID?.() || String(Date.now())) + "-e";
-        setMessages((prev) => [...prev, { id: rid, role: "assistant", text: "Sorry — the chatbot request failed. Try again." }]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="chatbot" aria-live="polite">
-      {open && (
-        <div id="chatpanel" className="chatpanel" role="dialog" aria-label="Chatbot">
-          <div className="chathead">
-            <div className="chathead-title">
-              <span className="chathead-dot" aria-hidden="true" />
-              <span>AI Chat</span>
-            </div>
-            <button className="chathead-close" type="button" onClick={() => setOpen(false)} aria-label="Close chat">
-              ✕
-            </button>
-          </div>
-
-          <div className="chatscroll" role="log" aria-label="Messages">
-            {messages.map((m) => (
-              <div key={m.id} className={`chatrow ${m.role === "user" ? "is-user" : "is-assistant"}`}>
-                <div className="chatbubble">{m.text}</div>
-              </div>
-            ))}
-            {loading && (
-              <div className="chatrow is-assistant">
-                <div className="chatbubble chattyping">Thinking…</div>
-              </div>
-            )}
-            <div ref={endRef} />
-          </div>
-
-          <div className="chatcomposer">
-            <div className="chatinputShell">
-              <textarea
-                ref={inputRef}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="Type your message…"
-                rows={1}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    send();
-                  }
-                }}
-              />
-            </div>
-            <button className="chatsend" type="button" onClick={send} disabled={loading || !draft.trim()}>
-              Send
-            </button>
-          </div>
-        </div>
-      )}
-
-      <button
-        className="chatfab"
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-controls="chatpanel"
-      >
-        {open ? "—" : "💬"}
-      </button>
-    </div>
-  );
-}
 
 function useTheme() {
   const getInitial = () => {
@@ -257,6 +82,67 @@ function Navbar({ theme, toggleTheme }) {
 }
 
 function Home() {
+  const [contactSending, setContactSending] = useState(false);
+  const [contactStatus, setContactStatus] = useState(null);
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    if (contactSending) return;
+
+    setContactSending(true);
+    setContactStatus(null);
+
+    try {
+      const form = e.currentTarget;
+      const fd = new FormData(form);
+
+      // Honeypot: if bots fill it, silently ignore.
+      const honey = (fd.get("_honey") || "").toString();
+      if (honey) {
+        form.reset();
+        setContactStatus({ kind: "success", message: "Thanks! Your message has been sent." });
+        return;
+      }
+
+      const payload = {
+        name: (fd.get("name") || "").toString(),
+        email: (fd.get("email") || "").toString(),
+        message: (fd.get("message") || "").toString(),
+        _subject: "New message from racal.ph",
+        _template: "table",
+      };
+
+      const res = await fetch("https://formsubmit.co/ajax/contact@racal.ph", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || "Request failed");
+      }
+
+      form.reset();
+      setContactStatus({
+        kind: "success",
+        message:
+          "Message sent! If this is your first submission, check your inbox to confirm/activate the form.",
+      });
+    } catch (err) {
+      setContactStatus({
+        kind: "error",
+        message: "Couldn’t send right now. Please try again or email me at contact@racal.ph.",
+      });
+    } finally {
+      setContactSending(false);
+    }
+  };
+
   return (
     <main className="container">
       <section className="hero">
@@ -301,8 +187,7 @@ function Home() {
   "likes": ["CTF"]
 }`}</div>
             <p style={{ margin: "10px 0 0", color: "var(--muted)", fontSize: 13 }}>
-              Full-stack projects with Node.js, Next.js/TypeScript, ASP.NET, and SQL — plus infra work on VPS + Nginx +
-              Docker.
+              IT-ELAI FINALS
             </p>
           </Card>
         </div>
@@ -358,12 +243,10 @@ function Home() {
           <h2>Contact</h2>
           <p style={{ marginBottom: 12 }}>Want to work together or ask something? Send a message.</p>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              alert("Hook this form to your backend/Formspree.");
-            }}
-          >
+          <form onSubmit={handleContactSubmit}>
+            {/* Honeypot to reduce spam (should stay empty) */}
+            <input className="hpField" type="text" name="_honey" tabIndex="-1" autoComplete="off" aria-hidden="true" />
+
             <div className="grid-2">
               <div className="field">
                 <span className="label">Name</span>
@@ -387,14 +270,24 @@ function Home() {
               </div>
             </div>
 
-            <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Button className="btn-primary" type="submit">
-                Submit
+            <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <Button className="btn-primary" type="submit" disabled={contactSending}>
+                {contactSending ? "Sending..." : "Submit"}
               </Button>
               <Button as="a" href="#/projects">
                 See Projects
               </Button>
+
+              <a className="muted-link" href="mailto:contact@racal.ph" style={{ marginLeft: "auto" }}>
+                Or email: contact@racal.ph
+              </a>
             </div>
+
+            {contactStatus ? (
+              <div className="formStatus" data-kind={contactStatus.kind} role="status" aria-live="polite">
+                {contactStatus.message}
+              </div>
+            ) : null}
           </form>
         </Card>
       </section>
@@ -403,7 +296,6 @@ function Home() {
     </main>
   );
 }
-
 function Projects() {
   const filters = useMemo(
     () => [
@@ -533,3 +425,139 @@ export default function App() {
     </HashRouter>
   );
 }
+
+function FloatingChatbot() {
+  const FLOWISE_URL =
+    "https://cloud.flowiseai.com/api/v1/prediction/9f4a5ad9-7da6-4fc2-8c42-0c92382dfb35";
+
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: "bot", text: "Hi! Ask me anything about Racal or the projects here." },
+  ]);
+
+  const listRef = React.useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    // Auto-scroll to bottom
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [open, messages.length]);
+
+  const send = async () => {
+    const q = input.trim();
+    if (!q || loading) return;
+
+    setMessages((m) => [...m, { role: "user", text: q }]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(FLOWISE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      // Flowise commonly returns { text: "..."} but can vary by setup.
+      const answer =
+        data?.text ||
+        data?.answer ||
+        data?.result ||
+        (typeof data === "string" ? data : null) ||
+        "Sorry — I didn’t get a response. Try again.";
+
+      setMessages((m) => [...m, { role: "bot", text: String(answer) }]);
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        { role: "bot", text: "Network error. Please try again in a moment." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        className="chatbotFab"
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? "Close chatbot" : "Open chatbot"}
+      >
+        {open ? (
+          <span style={{ fontSize: 18, lineHeight: 1 }}>×</span>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M7 8h10M7 12h6M12 21a9 9 0 1 0-8-5.1L3 21l5.1-1A9 9 0 0 0 12 21Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
+
+      {open ? (
+        <div className="chatbotPanel" role="dialog" aria-label="Chatbot">
+          <div className="chatbotHeader">
+            <div>
+              <div className="chatbotTitle">AI Chat</div>
+              <div className="chatbotSub">Powered by Flowise</div>
+            </div>
+            <button className="chatbotClose" type="button" onClick={() => setOpen(false)} aria-label="Close">
+              ×
+            </button>
+          </div>
+
+          <div className="chatbotMessages" ref={listRef}>
+            {messages.map((m, i) => (
+              <div key={i} className={`chatbotMsg ${m.role === "user" ? "isUser" : "isBot"}`}>
+                {m.text}
+              </div>
+            ))}
+            {loading ? <div className="chatbotHint">Thinking…</div> : null}
+          </div>
+
+          <div className="chatbotInputRow">
+            <textarea
+              className="chatbotInput"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your question…"
+              rows={1}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+            />
+            <button className="chatbotSend" type="button" onClick={send} disabled={loading || !input.trim()}>
+              Send
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+
