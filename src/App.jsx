@@ -428,7 +428,8 @@ export default function App() {
 
 function FloatingChatbot() {
   const FLOWISE_URL =
-    "https://cloud.flowiseai.com/api/v1/prediction/9f4a5ad9-7da6-4fc2-8c42-0c92382dfb35";
+    // limit reached "https://cloud.flowiseai.com/api/v1/prediction/9f4a5ad9-7da6-4fc2-8c42-0c92382dfb35";
+    "https://cloud.flowiseai.com/api/v1/prediction/c1d97f88-7cfd-4a38-af03-37ed04f00b94";
 
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -450,7 +451,6 @@ function FloatingChatbot() {
 
   useEffect(() => {
     if (!open) return;
-    // Auto-scroll to bottom
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
@@ -473,7 +473,6 @@ function FloatingChatbot() {
 
       const data = await res.json().catch(() => ({}));
 
-      // Flowise commonly returns { text: "..."} but can vary by setup.
       const answer =
         data?.text ||
         data?.answer ||
