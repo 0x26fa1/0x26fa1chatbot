@@ -35,7 +35,7 @@ export const PROJECTS = [
     title: "Discord Bot + Web App (VPS Hosted)",
     description:
       "Full-stack Discord ecosystem: OAuth verification, role-based commands, ticketing, Lavalink music, and real-time monitoring.",
-    tags: ["web", "node", "infra"],
+    tags: ["web", "node", "infra", "API"],
     chips: [
       "Next.js + TypeScript",
       "Node + Express",

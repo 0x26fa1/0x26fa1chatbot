@@ -301,7 +301,9 @@ function Projects() {
     () => [
       { key: "all", label: "All" },
       { key: "web", label: "Web Apps" },
+      { key: "AI", label: "AI" },
       { key: "dotnet", label: ".NET" },
+      { key: "API", label: "API" },
       { key: "node", label: "Node" },
       { key: "infra", label: "Infra" },
       { key: "security", label: "Security" },
