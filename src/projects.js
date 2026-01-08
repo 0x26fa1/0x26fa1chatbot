@@ -5,7 +5,7 @@ export const PROJECTS = [
       "AI-powered resume builder and analyzer that helps students and job seekers generate ATS-friendly resumes, get instant feedback, and tailor content to target roles.",
     tags: ["AI", "resume-analyzer", "ATS", "career-tools", "API"],
     chips: ["Next.js + TypeScript", "React", "Tailwind CSS", "Supabase (Auth)", "PostgreSQL (Supabase)", "Gemini API (Resume Analysis)", "Supabase Storage"],
-    links: [{ label: "Live Demo", href: "https://resumate.ph/" }],
+    links: [{ label: "Open Site", href: "https://resumate.ph/" }],
   },
   {
     title: "BookHaven — Online Library System",
