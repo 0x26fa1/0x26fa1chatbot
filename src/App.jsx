@@ -210,10 +210,8 @@ function Home() {
             <div className="chips" style={{ marginTop: 10 }}>
               <Chip>HTML/CSS/JS</Chip>
               <Chip>TypeScript</Chip>
-              <Chip>C# / .NET</Chip>
               <Chip>Python</Chip>
               <Chip>SQL</Chip>
-              <Chip>Docker</Chip>
               <Chip>PM2</Chip>
               <Chip>Nginx</Chip>
               <Chip>Linux VPS</Chip>
@@ -227,8 +225,8 @@ function Home() {
               <Button as="a" className="btn-primary" href="#/projects">
                 Open Projects Page
               </Button>
-              <Button as="a" href="https://app.erosu.ph" target="_blank" rel="noreferrer">
-                Discord App
+              <Button as="a" href="https://resumate.ph" target="_blank" rel="noreferrer">
+                ResuMate
               </Button>
               <Button as="a" href="https://bookhaven.digital/" target="_blank" rel="noreferrer">
                 BookHaven
